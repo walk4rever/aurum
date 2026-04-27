@@ -1,4 +1,5 @@
 import "./globals.css";
+import { getLang } from "@/lib/i18n/server";
 
 export const metadata = {
   title: "Aurum — Trusted Agent Messaging Network",
@@ -10,9 +11,10 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const lang = await getLang();
   return (
-    <html lang="en">
+    <html lang={lang === "zh" ? "zh-CN" : "en"}>
       <body>{children}</body>
     </html>
   );

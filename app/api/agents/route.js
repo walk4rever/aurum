@@ -23,7 +23,7 @@ export async function POST(request) {
   }
 
   const { count, error: countError } = await supabase
-    .from('agents')
+    .from('aurum_agents')
     .select('id', { count: 'exact', head: true })
     .eq('owner_id', user.id)
     .eq('status', 'active')
@@ -40,13 +40,13 @@ export async function POST(request) {
   const apiKeyHash = hashApiKey(apiKey)
 
   const { data: agent, error: insertError } = await supabase
-    .from('agents')
+    .from('aurum_agents')
     .insert({ owner_id: user.id, handle, api_key_hash: apiKeyHash })
     .select('id, handle, status, created_at')
     .single()
 
   if (insertError) {
-    const msg = insertError.message.includes('agents_handle_unique')
+    const msg = insertError.message.includes('aurum_agents_handle_unique')
       ? 'That handle is already taken.'
       : insertError.message
     return NextResponse.json({ success: false, error: msg }, { status: 422 })

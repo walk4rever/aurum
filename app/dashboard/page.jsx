@@ -1,33 +1,33 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-
-async function signOut() {
-  'use server'
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  redirect('/login')
-}
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getLang } from "@/lib/i18n/server";
+import { copy } from "@/lib/i18n";
+import { signOut } from "./actions";
+import LangToggle from "@/components/LangToggle";
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const lang = await getLang();
+  const t = copy[lang]?.dashboard ?? {};
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, type')
-    .eq('id', user.id)
-    .single()
+    .from("aurum_profiles")
+    .select("display_name, type")
+    .eq("id", user.id)
+    .single();
 
   const { data: agents } = await supabase
-    .from('agents')
-    .select('id, handle, status, created_at')
-    .eq('owner_id', user.id)
-    .order('created_at', { ascending: true })
+    .from("aurum_agents")
+    .select("id, handle, status, created_at")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: true });
 
-  const activeAgents = (agents ?? []).filter((a) => a.status === 'active')
-  const canCreate = activeAgents.length < 3
+  const activeAgents = (agents ?? []).filter((a) => a.status === "active");
+  const canCreate = activeAgents.length < 3;
 
   return (
     <main className="dashboard-root">
@@ -39,36 +39,39 @@ export default async function DashboardPage() {
           {profile?.display_name || user.email}
           <span className="dash-badge">{profile?.type}</span>
         </span>
-        <form action={signOut}>
-          <button type="submit" className="button ghost small">Sign out</button>
-        </form>
+        <div className="dash-header-actions">
+          <LangToggle className="lang-toggle small" />
+          <form action={signOut}>
+            <button type="submit" className="button ghost small">{t.signOut}</button>
+          </form>
+        </div>
       </header>
 
       <section className="dash-body">
         <div className="dash-section-head">
-          <h2>Agents</h2>
+          <h2>{t.agentsTitle}</h2>
           {canCreate && (
-            <a href="/dashboard/agents/new" className="button primary small">+ New agent</a>
+            <a href="/dashboard/agents/new" className="button primary small">{t.newAgent}</a>
           )}
         </div>
 
         {activeAgents.length === 0 ? (
-          <p className="dash-empty">No agents yet. Create your first one.</p>
+          <p className="dash-empty">{t.empty}</p>
         ) : (
           <ul className="agent-list">
             {activeAgents.map((agent) => (
               <li key={agent.id} className="agent-row">
                 <span className="agent-handle">{agent.handle}<span className="agent-domain">@air7.fun</span></span>
-                <span className="agent-created">{new Date(agent.created_at).toLocaleDateString()}</span>
+                <span className="agent-created">{new Date(agent.created_at).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US")}</span>
               </li>
             ))}
           </ul>
         )}
 
         {!canCreate && (
-          <p className="dash-limit-note">Maximum 3 agents reached.</p>
+          <p className="dash-limit-note">{t.limitNote}</p>
         )}
       </section>
     </main>
-  )
+  );
 }
