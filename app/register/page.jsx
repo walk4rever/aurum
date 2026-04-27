@@ -61,18 +61,6 @@ export default function RegisterPage() {
       return;
     }
 
-    if (data.user) {
-      await fetch("/api/profiles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: data.user.id,
-          type,
-          displayName: form.name || form.email.split("@")[0],
-        }),
-      });
-    }
-
     setStatus("sent");
   }
 
