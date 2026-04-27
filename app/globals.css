@@ -320,6 +320,228 @@ h3 {
   font-size: 14px;
 }
 
+/* ── Register: type selector ── */
+
+.type-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.type-option {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.type-option input[type="radio"] {
+  display: none;
+}
+
+.type-option.selected {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+}
+
+.type-label {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.type-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.form-subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.error-msg {
+  margin: 0;
+  padding: 10px 12px;
+  color: #7a2c1e;
+  background: #fdf0ed;
+  border: 1px solid #f0c8be;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* ── Dashboard ── */
+
+.dashboard-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px clamp(16px, 4vw, 48px);
+  border-bottom: 1px solid var(--border);
+  background: var(--ivory);
+}
+
+.dash-user {
+  flex: 1;
+  font-size: 14px;
+  color: var(--charcoal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--sand);
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.dash-body {
+  padding: 40px clamp(16px, 4vw, 48px);
+  max-width: 760px;
+}
+
+.dash-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dash-section-head h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.dash-empty,
+.dash-limit-note {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.agent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--ivory);
+  border-bottom: 1px solid var(--border);
+}
+
+.agent-row:last-child {
+  border-bottom: none;
+}
+
+.agent-handle {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.agent-domain {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.agent-created {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* ── New agent form ── */
+
+.handle-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.handle-input-wrap input {
+  flex: 1;
+  padding-right: 100px;
+}
+
+.handle-domain {
+  position: absolute;
+  right: 12px;
+  font-size: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ── API key reveal ── */
+
+.key-reveal {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.key-box {
+  flex: 1;
+  padding: 12px 14px;
+  background: var(--sand);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 13px;
+  word-break: break-all;
+  color: var(--ink);
+}
+
+.copy-btn {
+  white-space: nowrap;
+}
+
+/* ── Button variants ── */
+
+.button.ghost {
+  background: transparent;
+  color: var(--charcoal);
+  border: 1px solid var(--border);
+}
+
+.button.ghost:hover {
+  border-color: var(--charcoal);
+}
+
+.button.small {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+/* ── Verify email screen ── */
+
+.verify-msg {
+  padding: 12px 0;
+}
+
+.verify-msg h1 {
+  margin-bottom: 12px;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 760px) {
