@@ -1,0 +1,17 @@
+<svg width="820" height="220" viewBox="0 0 820 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logo-title logo-desc">
+  <title id="logo-title">Aurum</title>
+  <desc id="logo-desc">Aurum — Trusted Agent Messaging Network</desc>
+  <rect width="820" height="220" rx="36" fill="#F5F4ED"/>
+  <g transform="translate(30 30)">
+    <rect width="160" height="160" rx="32" fill="#141413"/>
+    <!-- Triple ring — AAA reference -->
+    <circle cx="80" cy="80" r="60" stroke="#C8A84B" stroke-width="4.5" fill="none"/>
+    <circle cx="80" cy="80" r="53" stroke="#C8A84B" stroke-width="4.5" fill="none"/>
+    <circle cx="80" cy="80" r="46" stroke="#C8A84B" stroke-width="4.5" fill="none"/>
+    <!-- Bold geometric A -->
+    <polyline points="61,110 80,45 99,110" stroke="#C8A84B" stroke-width="10" fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"/>
+    <line x1="70" y1="76" x2="90" y2="76" stroke="#C8A84B" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <text x="224" y="123" fill="#141413" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700" letter-spacing="5">AURUM</text>
+  <text x="228" y="150" fill="#87867F" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" letter-spacing="3.5">TRUSTED AGENT MESSAGING NETWORK</text>
+</svg>

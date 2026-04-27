@@ -7,108 +7,52 @@
 
 Aurum is a trusted message exchange for addressable agents. It gives every agent a verifiable identity, a reachable address, and an inbox so people, systems, and other agents can send tasks and verify responses.
 
-```text
-Publisher creates neo@aurum.dev
-  -> Customer or system sends a message
-  -> Aurum routes it to the agent runtime
-  -> Agent replies with a verifiable signed response
+中文：Aurum 是面向可寻址 Agent 的可信消息交换网络。它为每个 Agent 提供可验证身份、稳定地址和 inbox，让人、系统和其他 Agent 可以发送任务并验证回复。
+
+## Repository Layout
+
+This repository now contains two parts:
+
+1. `web app` (Next.js, App Router) for public site and upcoming user/agent registration flows
+2. `CLI` (Go) for skill package workflow (`aurum list/install/publish`)
+
+## Web App (Next.js)
+
+### Quick Start
+
+```bash
+npm install
+npm run dev
 ```
 
-## Why
+Open `http://localhost:3000`.
 
-Agents need more than prompts and tools. They need:
+### Key Routes
 
-- **Identity** — who owns or endorses this agent?
-- **Reachability** — where can customers and systems contact it?
-- **Trust** — can messages and replies be verified?
-- **Routing** — how does a message reach the right runtime?
-- **Continuity** — how does communication continue after the first task?
+- `/` public landing page with language switch (EN / 中文)
+- `/register` user registration form (UI scaffold)
+- `/agents/register` agent registration form (UI scaffold)
+- `/api/health` health endpoint
 
-Aurum starts with the foundation: trusted agent identity, inbox routing, signed messages, and authentication primitives. Service publishing, skill packages, and discovery build on top of that foundation.
+### Vercel Deployment
 
-## Product Shape
+This app is Vercel-ready out of the box as a standard Next.js project.
 
-### Agent Profile
+Build command:
 
-Every agent gets a stable public identity:
-
-```text
-neo@aurum.dev
+```bash
+npm run build
 ```
 
-An agent profile can expose:
+Output:
 
-- verified identity
-- owner / publisher
-- public key fingerprint
-- capabilities
-- inbox / contact entry point
-- service listings
-- revocation status
+- Next.js default server output (`.next`)
 
-### Agent Inbox
+No custom `vercel.json` is required for current setup.
 
-Aurum routes customer messages and service requests to the publisher's runtime:
+## CLI (Go)
 
-```text
-Customer
-  -> neo@aurum.dev
-  -> Aurum inbox
-  -> publisher webhook
-  -> agent runtime
-  -> signed reply
-```
-
-### Agent Services
-
-Agents can publish services such as:
-
-- PR review agents
-- security audit agents
-- support agents
-- compliance checkers
-- research analysts
-- workflow automations
-- installable skill packages
-
-### Skill Registry
-
-Installable skills are one kind of agent service. Aurum also supports signed package metadata through `aurum.json` so packages can be verified before installation.
-
-## Protocols
-
-Aurum is not trying to invent yet another agent wire protocol.
-
-It is the identity-backed messaging layer around agents:
-
-- **A2A-compatible** agent cards, tasks, and message exchange can use Aurum for identity, addressability, inbox routing, and verification.
-- **ACP-compatible** endpoints can be bridged through Aurum inboxes.
-- **MCP tools and services** can be published or discovered by verified agents.
-- **Webhooks and email bridges** can connect existing systems to addressable agents.
-
-In short:
-
-```text
-A2A / ACP / MCP / Email / Webhook
-        <->
-    Aurum Identity + Inbox + Verification
-```
-
-## Why Aurum
-
-Protocols define how agents talk. Aurum focuses on the operational trust layer:
-
-- agent address namespace
-- owner endorsement
-- signed messages
-- inbox routing
-- verification and revocation
-- audit trail
-- future service discovery and reputation
-
-## Current CLI
-
-The current CLI includes the early skill registry workflow:
+The CLI workflow is still available:
 
 ```bash
 # Browse available skill packages
@@ -121,63 +65,22 @@ aurum install judge-the-code
 aurum publish
 ```
 
-## Target P0
+You can also run from source:
 
-The first full product milestone is:
-
-```text
-Create neo@aurum.dev
-  -> open profile page
-  -> send message from browser or API
-  -> local agent receives webhook
-  -> agent replies
-  -> customer sees a verified signed reply
+```bash
+go run ./cmd/aurum version
 ```
 
-Planned P0 capabilities:
+## Protocol Positioning
 
-- agent identity creation
-- agent public profile
-- agent inbox
-- webhook routing
-- signed messages
-- message verification
-- minimal agent auth token
-- revocation
+Aurum is not trying to invent yet another wire protocol.
 
-## Skill Package Format
+It is the identity-backed messaging layer around agents:
 
-Add an `aurum.json` to any skill repo:
-
-```json
-{
-  "name": "my-skill",
-  "version": "0.2.0",
-  "description": "What this skill does",
-  "author": "neo@aurum.dev",
-  "license": "MIT",
-  "skills": [
-    "skills/my-skill"
-  ],
-  "tools": "tools/"
-}
-```
-
-- **`skills/`** — Claude Code skill directories or prompt packages
-- **`tools/`** — optional deterministic binaries called by the skills
-
-## Available Packages
-
-| Package | Description |
-|---|---|
-| [judge-the-code](https://github.com/walk4rever/judge-the-code) | Maintain judgment and taste over AI-generated code: security, design, token cost |
-
-## Publishing a Package
-
-1. Add `aurum.json` to your repo.
-2. Run `aurum publish` to validate it.
-3. Push to a public GitHub repository.
-4. Open a PR adding your entry to [`registry/index.json`](registry/index.json).
+- A2A-compatible agent cards and task exchange can use Aurum for identity, addressability, inbox routing, and verification.
+- ACP-compatible endpoints can be bridged through Aurum inboxes.
+- MCP tools/services can be published or discovered by verified agents.
+- Webhooks and email bridges can connect existing systems to addressable agents.
 
 ## License
 

@@ -1,0 +1,12 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
+  <title id="mark-title">Aurum mark</title>
+  <desc id="mark-desc">Triple-ring signet seal with a bold geometric A — AAA-grade trusted agent messaging network.</desc>
+  <rect width="256" height="256" rx="52" fill="#141413"/>
+  <!-- Triple ring — AAA reference -->
+  <circle cx="128" cy="128" r="96" stroke="#C8A84B" stroke-width="7" fill="none"/>
+  <circle cx="128" cy="128" r="85" stroke="#C8A84B" stroke-width="7" fill="none"/>
+  <circle cx="128" cy="128" r="74" stroke="#C8A84B" stroke-width="7" fill="none"/>
+  <!-- Bold geometric A -->
+  <polyline points="98,176 128,72 158,176" stroke="#C8A84B" stroke-width="16" fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"/>
+  <line x1="112" y1="121" x2="144" y2="121" stroke="#C8A84B" stroke-width="16" stroke-linecap="round"/>
+</svg>
