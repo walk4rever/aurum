@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
@@ -11,16 +12,20 @@ export async function GET(request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: profile } = await supabase
+        const service = createServiceClient()
+        const { data: profile } = await service
           .from('aurum_profiles')
           .select('id')
           .eq('id', user.id)
           .single()
         if (!profile) {
-          await supabase.from('aurum_profiles').upsert({
+          await service.from('aurum_profiles').upsert({
             id: user.id,
             type: user.user_metadata?.type || 'individual',
-            display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || '',
+            display_name: user.user_metadata?.display_name
+              || user.user_metadata?.full_name
+              || user.email?.split('@')[0]
+              || '',
           })
         }
       }
