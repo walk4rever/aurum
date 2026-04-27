@@ -2,7 +2,7 @@
   "packages": [
     {
       "name": "judge-the-code",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Maintain judgment and taste over AI-generated code — security, design, token cost",
       "author": "walk4rever",
       "source": "https://github.com/walk4rever/judge-the-code",
