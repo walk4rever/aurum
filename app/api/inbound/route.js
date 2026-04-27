@@ -10,16 +10,28 @@ function anonClient() {
   )
 }
 
+async function fetchEmailBody(emailId) {
+  const res = await fetch(`https://api.resend.com/emails/${emailId}`, {
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+  })
+  if (!res.ok) return { text: '', html: '' }
+  const data = await res.json()
+  return { text: data.text ?? '', html: data.html ?? '' }
+}
+
 export async function POST(request) {
   const payload = await request.json()
 
-  // Resend wraps inbound data under payload.data for email.received events
+  // Resend inbound: metadata only in webhook, body fetched separately
   const email = payload.data ?? payload
   const from = email.from ?? ''
   const toList = Array.isArray(email.to) ? email.to : [email.to]
   const subject = email.subject ?? ''
-  const bodyText = email.text ?? ''
-  const bodyHtml = email.html ?? ''
+  const emailId = email.email_id ?? null
+
+  const { text: bodyText, html: bodyHtml } = emailId
+    ? await fetchEmailBody(emailId)
+    : { text: '', html: '' }
 
   const handle = toList
     .map((addr) => {
