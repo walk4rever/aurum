@@ -13,11 +13,13 @@ function anonClient() {
 export async function POST(request) {
   const payload = await request.json()
 
-  const from = payload.from ?? ''
-  const toList = Array.isArray(payload.to) ? payload.to : [payload.to]
-  const subject = payload.subject ?? ''
-  const bodyText = payload.text ?? ''
-  const bodyHtml = payload.html ?? ''
+  // Resend wraps inbound data under payload.data for email.received events
+  const email = payload.data ?? payload
+  const from = email.from ?? ''
+  const toList = Array.isArray(email.to) ? email.to : [email.to]
+  const subject = email.subject ?? ''
+  const bodyText = email.text ?? ''
+  const bodyHtml = email.html ?? ''
 
   const handle = toList
     .map((addr) => {
