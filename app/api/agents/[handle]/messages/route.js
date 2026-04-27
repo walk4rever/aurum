@@ -1,48 +1,42 @@
-import { createServiceClient } from '@/lib/supabase/service'
+import { createClient } from '@supabase/supabase-js'
+import { hashApiKey } from '@/lib/utils/apikey'
 import { NextResponse } from 'next/server'
 
-// Authenticate via API key in Authorization: Bearer <key>
-async function resolveAgent(request, handle) {
-  const auth = request.headers.get('authorization') ?? ''
-  const apiKey = auth.replace(/^Bearer\s+/i, '').trim()
-  if (!apiKey) return { error: 'missing api key', status: 401 }
-
-  const { hashApiKey } = await import('@/lib/utils/apikey')
-  const hash = hashApiKey(apiKey)
-
-  const supabase = createServiceClient()
-  const { data: agent, error } = await supabase
-    .from('aurum_agents')
-    .select('id, handle, status')
-    .eq('handle', handle)
-    .eq('api_key_hash', hash)
-    .eq('status', 'active')
-    .single()
-
-  if (error || !agent) return { error: 'unauthorized', status: 401 }
-  return { agent, supabase }
+function anonClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
 }
 
 export async function GET(request, { params }) {
   const { handle } = await params
-  const { agent, supabase, error, status } = await resolveAgent(request, handle)
-  if (error) return NextResponse.json({ ok: false, error }, { status })
+
+  const auth = request.headers.get('authorization') ?? ''
+  const apiKey = auth.replace(/^Bearer\s+/i, '').trim()
+  if (!apiKey) {
+    return NextResponse.json({ ok: false, error: 'missing api key' }, { status: 401 })
+  }
 
   const url = new URL(request.url)
   const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50'), 100)
-  const since = url.searchParams.get('since') // ISO timestamp
+  const since = url.searchParams.get('since') ?? null
 
-  let query = supabase
-    .from('aurum_messages')
-    .select('id, from_addr, subject, body_text, body_html, received_at')
-    .eq('agent_id', agent.id)
-    .order('received_at', { ascending: false })
-    .limit(limit)
+  const supabase = anonClient()
+  const { data, error } = await supabase.rpc('get_agent_messages', {
+    p_handle: handle,
+    p_api_key_hash: hashApiKey(apiKey),
+    p_limit: limit,
+    p_since: since,
+  })
 
-  if (since) query = query.gt('received_at', since)
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+  }
 
-  const { data, error: fetchErr } = await query
-  if (fetchErr) return NextResponse.json({ ok: false, error: fetchErr.message }, { status: 500 })
+  if (!data?.ok) {
+    return NextResponse.json({ ok: false, error: data?.error ?? 'unauthorized' }, { status: 401 })
+  }
 
-  return NextResponse.json({ ok: true, messages: data })
+  return NextResponse.json({ ok: true, messages: data.messages })
 }
