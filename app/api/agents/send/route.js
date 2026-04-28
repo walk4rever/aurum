@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { hashApiKey } from '@/lib/utils/apikey'
-import { createServiceClient } from '@/lib/supabase/service'
 
 const DOMAIN = 'air7.fun'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FALLBACK_FROM = process.env.RESEND_FROM_EMAIL || 'aurum@air7.fun'
+
+function anonClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+}
 
 function escapeHtml(text) {
   return text
@@ -35,35 +42,18 @@ export async function POST(request) {
       return NextResponse.json({ ok: false, error: 'missing required fields: to, subject' }, { status: 400 })
     }
 
-    const supabase = createServiceClient()
-    const { data: agent, error: agentErr } = await supabase
-      .from('aurum_agents')
-      .select('handle, owner_id')
-      .eq('api_key_hash', hashApiKey(apiKey))
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle()
+    const supabase = anonClient()
+    const { data: authResult, error: authErr } = await supabase.rpc('get_agent_sender_by_api_key', {
+      p_api_key_hash: hashApiKey(apiKey),
+    })
 
-    if (agentErr) {
-      return NextResponse.json({ ok: false, error: agentErr.message }, { status: 500 })
+    if (authErr) {
+      return NextResponse.json({ ok: false, error: authErr.message }, { status: 500 })
     }
-    if (!agent) {
-      return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
+    if (!authResult?.ok) {
+      return NextResponse.json({ ok: false, error: authResult?.error ?? 'unauthorized' }, { status: 401 })
     }
-
-    const { data: profile, error: profileErr } = await supabase
-      .from('aurum_profiles')
-      .select('username')
-      .eq('id', agent.owner_id)
-      .limit(1)
-      .maybeSingle()
-
-    if (profileErr) {
-      return NextResponse.json({ ok: false, error: profileErr.message }, { status: 500 })
-    }
-
-    const localPart = profile?.username ? `${agent.handle}.${profile.username}` : agent.handle
-    const fromAddress = `${localPart}@${DOMAIN}`
+    const fromAddress = String(authResult.from || `aurum@${DOMAIN}`)
 
     const { error: sendErr } = await resend.emails.send({
       from: `Aurum <${FALLBACK_FROM}>`,
