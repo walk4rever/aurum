@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,13 +11,48 @@ import (
 
 const (
 	configFilename = ".aurum.json"
-	defaultAPIURL  = "https://aurum.air7.fun"
+	defaultAPIURL  = "https://aurum.air7.fun/api"
 )
 
 type Config struct {
 	Address string `json:"address"`
 	APIKey  string `json:"api_key"`
 	APIURL  string `json:"api_url,omitempty"`
+}
+
+func normalizeAPIURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return raw
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+
+	if u.Host == "api.aurum.air7.fun" {
+		u.Host = "aurum.air7.fun"
+	}
+
+	u.Path = strings.TrimSpace(u.Path)
+	if u.Path == "" || u.Path == "/" {
+		u.Path = "/api"
+	}
+	for strings.Contains(u.Path, "/api/api") {
+		u.Path = strings.ReplaceAll(u.Path, "/api/api", "/api")
+	}
+	u.Path = strings.TrimRight(u.Path, "/")
+	if u.Path == "" {
+		u.Path = "/api"
+	}
+
+	u.RawQuery = ""
+	u.Fragment = ""
+
+	return u.String()
 }
 
 // localPart returns the part before @ (e.g. "monia.rafael" from "monia.rafael@air7.fun").
@@ -68,6 +104,8 @@ func loadConfig() (*Config, error) {
 	if cfg.APIURL == "" {
 		cfg.APIURL = defaultAPIURL
 	}
+
+	cfg.APIURL = normalizeAPIURL(cfg.APIURL)
 
 	return cfg, nil
 }

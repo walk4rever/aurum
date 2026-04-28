@@ -25,7 +25,7 @@ var httpClient = &http.Client{
 }
 
 func fetchInbox(cfg *Config, since *time.Time, limit int) ([]Message, error) {
-	u, err := url.Parse(cfg.APIURL + "/api/agents/" + cfg.localPart() + "/messages")
+	u, err := url.Parse(cfg.APIURL + "/agents/" + cfg.localPart() + "/messages")
 	if err != nil {
 		return nil, fmt.Errorf("invalid API URL: %w", err)
 	}
@@ -79,7 +79,7 @@ func sendMessage(cfg *Config, to, subject, body string) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, cfg.APIURL+"/api/agents/send", bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPost, cfg.APIURL+"/agents/send", bytes.NewReader(data))
 	if err != nil {
 		return "", err
 	}
