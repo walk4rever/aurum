@@ -1,19 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import NewAgentForm from './NewAgentForm'
+import SettingsForm from './SettingsForm'
 
-export default async function NewAgentPage() {
+export default async function SettingsPage({ searchParams }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('aurum_profiles')
-    .select('username')
+    .select('username, lang, display_name')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.username) redirect('/dashboard/settings?setup=username')
+  const params = await searchParams
+  const setup = params?.setup === 'username'
 
-  return <NewAgentForm username={profile.username} />
+  return <SettingsForm profile={profile} setupUsername={setup} />
 }

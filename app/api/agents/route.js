@@ -36,6 +36,13 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Maximum 3 active agents per account.' }, { status: 422 })
   }
 
+  // Ensure profile exists before inserting agent (FK: aurum_agents.owner_id → aurum_profiles.id).
+  // Covers shared-auth users who log in via password and bypass /auth/confirm.
+  await supabase.from('aurum_profiles').upsert(
+    { id: user.id, type: 'individual', display_name: user.email?.split('@')[0] ?? '' },
+    { onConflict: 'id', ignoreDuplicates: true }
+  )
+
   const apiKey = generateApiKey()
   const apiKeyHash = hashApiKey(apiKey)
 
