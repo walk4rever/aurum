@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getLang } from "@/lib/i18n/server";
 import { copy } from "@/lib/i18n";
@@ -52,10 +54,10 @@ export default async function DashboardPage() {
     <div className="dash-layout">
       <aside className="dash-sidebar">
         <div className="dash-sidebar-inner">
-          <a href="/" className="dash-logo">
-            <img src="/assets/aurum-mark.svg" alt="Aurum" width={26} height={26} />
+          <Link href="/" className="dash-logo">
+            <Image src="/assets/aurum-mark.svg" alt="Aurum" width={26} height={26} />
             <span>Aurum</span>
-          </a>
+          </Link>
 
           <div className="dash-identity">
             <div className="dash-avatar">{avatarLetter}</div>
@@ -67,20 +69,20 @@ export default async function DashboardPage() {
 
           <nav className="dash-nav">
             <span className="dash-nav-label">Workspace</span>
-            <a href="/dashboard" className="dash-nav-item dash-nav-active">
+            <Link href="/dashboard" className="dash-nav-item dash-nav-active">
               <AgentsIcon />
               {t.agentsTitle}
-            </a>
+            </Link>
           </nav>
 
           <div className="dash-sidebar-footer">
-            <a href="/dashboard/settings" className="dash-footer-link">
+            <Link href="/dashboard/settings" className="dash-footer-link">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
               {t.settings}
-            </a>
+            </Link>
             <form action={signOut} style={{ margin: 0 }}>
               <button type="submit" className="dash-footer-link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
@@ -101,9 +103,9 @@ export default async function DashboardPage() {
             <div className="dash-setup-bar-inner">
               <span className="dash-setup-star">✦</span>
               <span>{t.usernameBanner}</span>
-              <a href="/dashboard/settings?setup=username" className="button primary small">
+              <Link href="/dashboard/settings?setup=username" className="button primary small">
                 {t.usernameBannerCta}
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -112,7 +114,7 @@ export default async function DashboardPage() {
           <div className="dash-content-header">
             <h1 className="dash-content-title">{t.agentsTitle}</h1>
             {canCreate && profile?.username && (
-              <a href="/dashboard/agents/new" className="button primary small">{t.newAgent}</a>
+              <Link href="/dashboard/agents/new" className="button primary small">{t.newAgent}</Link>
             )}
           </div>
 
@@ -120,7 +122,7 @@ export default async function DashboardPage() {
             <div className="dash-empty-state">
               <p className="dash-empty-text">{t.empty}</p>
               {profile?.username && canCreate && (
-                <a href="/dashboard/agents/new" className="button primary">{t.newAgent}</a>
+                <Link href="/dashboard/agents/new" className="button primary">{t.newAgent}</Link>
               )}
             </div>
           ) : (

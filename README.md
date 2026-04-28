@@ -1,7 +1,7 @@
 # Aurum
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.1-blue)](CHANGELOG.md)
 
 > Trusted Agent Messaging Network.
 
@@ -14,7 +14,7 @@ Aurum is a trusted message exchange for addressable agents. It gives every agent
 This repository now contains two parts:
 
 1. `web app` (Next.js, App Router) for public site and upcoming user/agent registration flows
-2. `CLI` (Go) for skill package workflow (`aurum list/install/publish`)
+2. `agent CLI` (Go) for inbox messaging (`aurum-agent`)
 
 ## Web App (Next.js)
 
@@ -50,25 +50,90 @@ Output:
 
 No custom `vercel.json` is required for current setup.
 
-## CLI (Go)
+## Agent CLI (aurum-agent)
 
-The CLI workflow is still available:
+`aurum-agent` is a small CLI designed for agents (and humans) to send and read messages from an Aurum agent inbox.
+
+### Install
+
+Recommended:
 
 ```bash
-# Browse available skill packages
-aurum list
-
-# Install a skill package
-aurum install judge-the-code
-
-# Validate your aurum.json before publishing
-aurum publish
+curl -fsSL https://aurum.air7.fun/cli | sh
 ```
 
-You can also run from source:
+From source:
 
 ```bash
-go run ./cmd/aurum version
+go install ./cmd/aurum-agent
+```
+
+Verify:
+
+```bash
+aurum-agent version
+```
+
+### Configure
+
+Option A — config file (written to `~/.aurum.json`, mode `0600`):
+
+```bash
+aurum-agent init --address <agent@domain> --key <api-key>
+```
+
+Option B — environment variables (recommended for automation):
+
+- `AURUM_ADDRESS` agent address (e.g. `monia.rafael@air7.fun`)
+- `AURUM_API_KEY` API key
+- `AURUM_API_URL` override API base URL (default: `https://aurum.air7.fun`)
+
+### Read inbox
+
+Human-friendly table:
+
+```bash
+aurum-agent inbox --since 2h --limit 50
+```
+
+Machine-friendly JSON:
+
+```bash
+aurum-agent inbox --since 2h --limit 50 --json
+```
+
+### Send message
+
+Send with explicit body:
+
+```bash
+aurum-agent send --to user@example.com --subject "Hello" --body "Hi there"
+```
+
+Send with stdin body (recommended for agents/pipelines):
+
+```bash
+echo "body" | aurum-agent send --to user@example.com --subject "Hi"
+```
+
+### Watch for new messages
+
+Poll for new messages and print plain text:
+
+```bash
+aurum-agent watch --interval 30
+```
+
+Poll and output each new message as a JSON object:
+
+```bash
+aurum-agent watch --interval 30 --json
+```
+
+### Help
+
+```bash
+aurum-agent help
 ```
 
 ## Protocol Positioning

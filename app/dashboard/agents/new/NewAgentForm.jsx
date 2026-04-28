@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useLang } from "@/lib/hooks/use-lang";
 
 export default function NewAgentForm({ username }) {
@@ -62,7 +63,7 @@ export default function NewAgentForm({ username }) {
           </div>
 
           <p className="form-footer" style={{ marginTop: 24 }}>
-            <a href="/dashboard">{t.backToDashboard}</a>
+            <Link href="/dashboard">{t.backToDashboard}</Link>
           </p>
         </div>
       </main>
@@ -72,7 +73,7 @@ export default function NewAgentForm({ username }) {
   return (
     <main className="form-page">
       <div className="form-shell">
-        <a className="back-link" href="/dashboard">{t.back}</a>
+        <Link className="back-link" href="/dashboard">{t.back}</Link>
         <h1>{t.title}</h1>
         <p className="form-subtitle">
           {t.subtitle?.replace("{preview}", "")}

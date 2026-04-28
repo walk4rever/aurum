@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useLang } from "@/lib/hooks/use-lang";
 
 function UserIcon() {
@@ -79,12 +80,12 @@ export default function SettingsForm({ profile, setupUsername }) {
   return (
     <div className="settings-layout">
       <div className="settings-sidebar">
-        <a href="/dashboard" className="settings-back">
+        <Link href="/dashboard" className="settings-back">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
           {t.back}
-        </a>
+        </Link>
         <h1 className="settings-title">{t.title}</h1>
         <nav className="settings-nav">
           <a href="#profile" className="settings-nav-item settings-nav-active">

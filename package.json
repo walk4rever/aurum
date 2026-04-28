@@ -1,12 +1,12 @@
 {
   "name": "aurum-web",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.5.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -15,5 +15,9 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "resend": "^6.12.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.2.4"
   }
 }

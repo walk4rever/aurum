@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/hooks/use-lang";
 
@@ -64,7 +65,7 @@ export default function LoginPage() {
   return (
     <main className="form-page">
       <div className="form-shell">
-        <a className="back-link" href="/">{t.back}</a>
+        <Link className="back-link" href="/">{t.back}</Link>
         <h1>{t.title}</h1>
 
         <div className="form-grid" style={{ marginTop: "24px" }}>
@@ -112,7 +113,7 @@ export default function LoginPage() {
         </div>
 
         <p className="form-footer">
-          {t.footer} <a href="/register">{t.footerLink}</a>
+          {t.footer} <Link href="/register">{t.footerLink}</Link>
         </p>
       </div>
     </main>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/hooks/use-lang";
 
@@ -73,7 +74,7 @@ export default function RegisterPage() {
             <p dangerouslySetInnerHTML={{ __html: t.verifyText?.replace("{email}", `<strong>${form.email}</strong>`) }} />
             <p>{t.verifyAction}</p>
             <p className="form-footer">
-              {t.verifyWrong} <a href="/register">{t.verifyStartOver}</a>
+              {t.verifyWrong} <Link href="/register">{t.verifyStartOver}</Link>
             </p>
           </div>
         </div>
@@ -84,7 +85,7 @@ export default function RegisterPage() {
   return (
     <main className="form-page">
       <div className="form-shell">
-        <a className="back-link" href="/">{t.back}</a>
+        <Link className="back-link" href="/">{t.back}</Link>
         <h1>{t.title}</h1>
         <p className="form-subtitle" dangerouslySetInnerHTML={{ __html: t.subtitle?.replace("{site}", "<strong>air7.fun</strong>") }} />
 
@@ -168,7 +169,7 @@ export default function RegisterPage() {
         </form>
 
         <p className="form-footer">
-          {t.footer} <a href="/login">{t.footerLink}</a>
+          {t.footer} <Link href="/login">{t.footerLink}</Link>
         </p>
       </div>
     </main>

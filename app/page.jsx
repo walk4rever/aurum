@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useLang } from "@/lib/hooks/use-lang";
 import { createClient } from "@/lib/supabase/client";
 
@@ -37,7 +38,7 @@ export default function HomePage() {
     <>
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Aurum home">
-          <img className="brand-mark" src="/assets/aurum-mark.svg" alt="" aria-hidden="true" />
+          <Image className="brand-mark" src="/assets/aurum-mark.svg" alt="" aria-hidden="true" width={26} height={26} />
           <span>Aurum</span>
         </a>
         <div className="header-actions">
