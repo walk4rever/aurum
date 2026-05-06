@@ -461,7 +461,7 @@ h3 {
 .dash-identity-type {
   font-size: 11px;
   color: var(--muted);
-  text-transform: capitalize;
+  text-transform: lowercase;
   margin-top: 2px;
 }
 
