@@ -27,9 +27,10 @@ export default async function AgentDetailPage({ params }) {
     .eq('id', user.id)
     .single()
 
-  const address = profile?.username
-    ? `${agent.handle}.${profile.username}@air7.fun`
-    : `${agent.handle}@air7.fun`
+  const agentHandle = profile?.username
+    ? `${agent.handle}.${profile.username}`
+    : agent.handle
+  const address = `${agentHandle}@air7.fun`
 
   const { data: messages } = await supabase
     .from('aurum_messages')
@@ -98,6 +99,10 @@ export default async function AgentDetailPage({ params }) {
         <div className="dash-content">
           <div className="agent-detail-header">
             <div className="agent-detail-address">{address}</div>
+            <div className="agent-detail-creds">
+              <span className="agent-detail-cred-label">AURUM_HANDLE</span>
+              <code className="agent-detail-cred-value">{agentHandle}</code>
+            </div>
             <div className="agent-detail-meta">
               <span className="agent-status-dot" />
               <span>{agent.status}</span>

@@ -10,7 +10,7 @@ export default function NewAgentForm({ username }) {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [revealed, setRevealed] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
 
   const address = handle
     ? `${handle}.${username}@air7.fun`
@@ -39,27 +39,42 @@ export default function NewAgentForm({ username }) {
     setStatus("done");
   }
 
-  function copyKey() {
-    navigator.clipboard.writeText(revealed);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function copyField(value, field) {
+    navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
   }
 
   if (status === "done") {
     const doneAddress = `${handle}.${username}@air7.fun`;
+    const doneHandle = `${handle}.${username}`;
+    const credentials = [
+      { label: t.doneAddress, value: doneAddress, field: "address" },
+      { label: t.doneHandle, value: doneHandle, field: "handle" },
+      { label: t.doneApiKey, value: revealed, field: "apikey", note: t.doneApiKeyNote },
+    ];
     return (
       <main className="form-page">
         <div className="form-shell">
           <h1>{t.doneTitle}</h1>
-          <p className="form-subtitle">
-            {t.doneSubtitle?.replace("{address}", doneAddress)} {t.doneKeyText}
-          </p>
+          <p className="form-subtitle">{t.doneSubtitle}</p>
 
-          <div className="key-reveal">
-            <div className="key-box">{revealed}</div>
-            <button className="button primary small copy-btn" onClick={copyKey}>
-              {copied ? t.copied : t.copyKey}
-            </button>
+          <div className="cred-list">
+            {credentials.map(({ label, value, field, note }) => (
+              <div key={field} className="cred-row">
+                <div className="cred-label">{label}</div>
+                <div className="cred-value-row">
+                  <code className="cred-value">{value}</code>
+                  <button
+                    className="button small cred-copy-btn"
+                    onClick={() => copyField(value, field)}
+                  >
+                    {copiedField === field ? t.copied : t.copy}
+                  </button>
+                </div>
+                {note && <div className="cred-note">{note}</div>}
+              </div>
+            ))}
           </div>
 
           <p className="form-footer" style={{ marginTop: 24 }}>

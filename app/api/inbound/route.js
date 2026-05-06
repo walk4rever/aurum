@@ -51,6 +51,7 @@ export async function POST(request) {
     p_to: toAddress,
     p_channel: 'email',
     p_direction: 'inbound',
+    p_external_id: meta.email_id ?? null,
   })
 
   if (rpcErr) {

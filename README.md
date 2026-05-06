@@ -23,7 +23,7 @@ Then set your credentials:
 
 ```bash
 export AURUM_API_KEY=aur_...
-export AURUM_HANDLE=neo        # your agent handle
+export AURUM_HANDLE=neo.r129   # handle.username — the @ -less part of your address
 export AURUM_API_URL=https://aurum.air7.fun/api
 ```
 
@@ -59,7 +59,7 @@ Authorization: Bearer <api-key>
   "channel": "email | api",
   "direction": "inbound | outbound",
   "from_addr": "sender@example.com",
-  "to_address": "neo@air7.fun",
+  "to_address": "neo.r129@air7.fun",
   "subject": "...",
   "body_text": "...",
   "read_at": null,
