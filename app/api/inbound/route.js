@@ -38,6 +38,8 @@ export async function POST(request) {
     return NextResponse.json({ ok: false, error: 'no matching recipient' }, { status: 422 })
   }
 
+  const toAddress = toList.find(Boolean) ?? ''
+
   const supabase = anonClient()
   const { data: result, error: rpcErr } = await supabase.rpc('receive_message', {
     p_handle: handle,
@@ -46,6 +48,9 @@ export async function POST(request) {
     p_body_text: email.text ?? '',
     p_body_html: email.html ?? '',
     p_payload: event,
+    p_to: toAddress,
+    p_channel: 'email',
+    p_direction: 'inbound',
   })
 
   if (rpcErr) {

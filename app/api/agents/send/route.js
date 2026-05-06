@@ -5,7 +5,7 @@ import { hashApiKey } from '@/lib/utils/apikey'
 
 const DOMAIN = 'air7.fun'
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FALLBACK_FROM = process.env.RESEND_FROM_EMAIL || 'aurum@air7.fun'
+const FALLBACK_FROM = process.env.RESEND_FROM_EMAIL || `aurum@${DOMAIN}`
 
 function anonClient() {
   return createClient(
@@ -39,36 +39,48 @@ export async function POST(request) {
     const text = String(body.text ?? '').trim()
 
     if (!to || !subject) {
-      return NextResponse.json({ ok: false, error: 'missing required fields: to, subject' }, { status: 400 })
+      return NextResponse.json(
+        { ok: false, error: 'missing required fields: to, subject' },
+        { status: 400 }
+      )
     }
 
     const supabase = anonClient()
-    const { data: authResult, error: authErr } = await supabase.rpc('get_agent_sender_by_api_key', {
+    const { data: result, error: rpcErr } = await supabase.rpc('send_message', {
       p_api_key_hash: hashApiKey(apiKey),
+      p_to: to,
+      p_subject: subject,
+      p_body_text: text,
+      p_channel: 'api',
     })
 
-    if (authErr) {
-      return NextResponse.json({ ok: false, error: authErr.message }, { status: 500 })
+    if (rpcErr) {
+      return NextResponse.json({ ok: false, error: rpcErr.message }, { status: 500 })
     }
-    if (!authResult?.ok) {
-      return NextResponse.json({ ok: false, error: authResult?.error ?? 'unauthorized' }, { status: 401 })
+    if (!result?.ok) {
+      return NextResponse.json({ ok: false, error: result?.error ?? 'unauthorized' }, { status: 401 })
     }
-    const fromAddress = String(authResult.from || `aurum@${DOMAIN}`)
 
+    // Internal delivery: message already written to recipient's inbox
+    if (result.is_internal) {
+      return NextResponse.json({ ok: true, from: result.from, channel: 'api' })
+    }
+
+    // External delivery: send via Resend
     const { error: sendErr } = await resend.emails.send({
       from: `Aurum <${FALLBACK_FROM}>`,
       to: [to],
       subject,
       text,
       html: textToHtml(text),
-      replyTo: fromAddress,
+      replyTo: result.from,
     })
 
     if (sendErr) {
       return NextResponse.json({ ok: false, error: sendErr.message }, { status: 502 })
     }
 
-    return NextResponse.json({ ok: true, from: fromAddress })
+    return NextResponse.json({ ok: true, from: result.from, channel: 'email' })
   } catch (err) {
     return NextResponse.json({ ok: false, error: err.message ?? 'unexpected error' }, { status: 500 })
   }

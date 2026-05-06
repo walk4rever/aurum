@@ -1,7 +1,7 @@
 # Aurum — Product Document
 
-**Version:** 0.2.0  
-**Date:** 2026-04-27  
+**Version:** 0.3.0  
+**Date:** 2026-04-28  
 **Status:** Active Design  
 **Audience:** Internal product and execution planning  
 **Canonical Document:** This file is the single maintained product document.
@@ -1068,7 +1068,475 @@ A2A / ACP / MCP / Email / Webhook
 
 ---
 
-## 18. 参考资料
+## 18. 技术架构
+
+### 18.1 当前架构评估
+
+当前实现约为 P0 目标的 35-40%。
+
+**已实现：**
+- Email 传输（Resend inbound webhook → Supabase RPC）
+- Go CLI（create agent, inbox, send, watch）
+- Next.js API 路由（inbound, send, messages）
+- Supabase 数据库（profiles, agents, messages + RPC）
+- Dashboard 页面
+- `aur_` prefix API key 生成 + SHA-256 hash
+
+**P0 缺失：**
+- Ed25519 公钥身份（当前用 api_key_hash）
+- Owner endorsement 链
+- WebSocket 传输（当前 30s 轮询）
+- 消息签名与验证
+- Webhook 推送（当前无 push）
+- Agent Card / discovery endpoint
+- 身份撤销
+- 消息去重
+- 消息队列 / 异步处理
+
+**安全缺陷：**
+- `receive_message` 和 `get_agent_messages` 为 `SECURITY DEFINER` + `GRANT EXECUTE TO anon`——任何人持 public anon key 可直接调用 RPC
+- API key hash 为唯一认证手段，无密码学身份
+- 无 rate limiting
+- inbound handler 同步阻塞、无重试、无去重
+
+**扩展瓶颈：**
+- 同步阻塞：inbound handler 内直接写数据库，失败即丢失
+- 无队列：无消息缓冲，高峰期直接超载
+- 无推送：客户端 30s 轮询，实时性差
+- 无消息索引：`jsonb_agg` 全表扫描
+- 单传输：仅 Email，无 WebSocket / HTTP API
+
+### 18.2 目标架构：五层模型
+
+```text
+┌─────────────────────────────────────────────┐
+│  Layer 5 — Governance                       │
+│  Org, policy, audit, SSO/RBAC, revocation   │
+├─────────────────────────────────────────────┤
+│  Layer 4 — Discovery                        │
+│  Agent Card, search, directory, reputation  │
+├─────────────────────────────────────────────┤
+│  Layer 3 — Trust                            │
+│  Identity, endorsement, signing, verify     │
+├─────────────────────────────────────────────┤
+│  Layer 2 — Messaging                        │
+│  Mailbox, threads, queue, push, webhook     │
+├─────────────────────────────────────────────┤
+│  Layer 1 — Transport                        │
+│  WebSocket, HTTP API, Email bridge          │
+└─────────────────────────────────────────────┘
+```
+
+**Layer 1 — Transport：** Agent 如何连接 Aurum。WebSocket 为主通道（实时、双向），HTTP API 为同步通道，Email 为传统通道桥接。
+
+**Layer 2 — Messaging：** 消息如何存储和路由。Mailbox 持久化、线程组织、队列缓冲、多通道推送。这是 ARP 不做、Aurum 必须做的核心。
+
+**Layer 3 — Trust：** 身份如何建立和验证。Ed25519 公钥身份、Owner endorsement 链、消息签名、验证 API、撤销。
+
+**Layer 4 — Discovery：** Agent 如何被发现。Agent Card endpoint、搜索、目录、基础 reputation 信号。
+
+**Layer 5 — Governance：** 组织如何管理 Agent。Org/workspace、SSO/RBAC、审计日志、inbox policy、private namespace。
+
+### 18.3 协议策略
+
+**原则：Aurum 不发明新的 Agent 通信协议，而是做 identity-backed messaging network，兼容和桥接现有协议。**
+
+**Layer 1 — Transport 协议：**
+
+| 传输方式 | 优先级 | 用途 |
+|---|---|---|
+| WebSocket | P0 主通道 | Agent 实时连接，ARP 风格 admission + framing |
+| HTTP API | P0 同步通道 | 发送消息、查询 inbox、管理 identity |
+| Email | P0 桥接 | 传统邮件入口，Resend webhook 接收 |
+
+**Layer 2 — Application 协议桥接：**
+
+| 协议 | 关系 | 时机 |
+|---|---|---|
+| A2A | Aurum 提供 A2A Agent 的身份、地址、inbox | P1 |
+| ACP | Aurum 兼容或桥接 ACP endpoint | P2 |
+| MCP | Aurum 让可信 Agent 发布/发现 MCP 服务 | P2 |
+
+Aurum 的 Wire Protocol 基于 ARP TLV framing 扩展，新增帧类型覆盖 Mailbox 和 Identity 操作：
+
+```text
+ARP 帧类型 (复用):           Aurum 新增帧类型:
+  CHALLENGE = 0x00             MAILBOX_STORE = 0x10
+  ADMIT     = 0x01             MAILBOX_FETCH = 0x11
+  REJECTED  = 0x02             MAILBOX_ACK   = 0x12
+  ROUTE     = 0x03             AGENT_CARD    = 0x13
+  DELIVER   = 0x04             ENDORSE       = 0x14
+  STATUS    = 0x05             REVOKE        = 0x15
+  PING      = 0x06             VERIFY        = 0x16
+  PONG      = 0x07             PUSH          = 0x17
+  DISCONNECT= 0x08             THREAD_CREATE = 0x18
+```
+
+### 18.4 ARP 复用策略
+
+**核心判断：ARP 和 Aurum 是互补关系，不是竞争关系。**
+
+ARP = 实时无状态 relay（connect, route, forget）
+Aurum = Mailbox + Identity + Audit（persist, verify, discover）
+
+**Aurum = ARP + Mailbox + Identity + Audit**
+
+#### 18.4.1 ARP v0.3.2 架构概要
+
+ARP 当前版本（v0.3.2, MIT 许可, ~9,700 行 Rust）：
+
+- 3 个 crate：`arp-common`（crypto, framing, base58）、`arps`（server）、`arpc`（client daemon）
+- 核心能力：Ed25519 身份、挑战-响应 admission + PoW、HPKE Auth (RFC 9180) E2E 加密、DashMap 路由表、滑动窗口 rate limiting
+- v0.3.x 新增：Cross-relay 多连接池（Coordinator + N Worker）、SHA-256 消息去重、message_loop 抽取、trusted proxy CIDR、pre-auth semaphore、release signing
+
+#### 18.4.2 代码级复用
+
+| 模块 | 行数 | Aurum 用途 | 改动量 |
+|---|---|---|---|
+| `arp-common/frame.rs` | 816 | TLV framing 协议 | 扩展 Aurum 帧类型 |
+| `arp-common/crypto.rs` | 413 | Ed25519 + PoW admission | 原样复用 |
+| `arp-common/base58.rs` | 136 | 公钥编码 | 原样复用 |
+| `arp-common/types.rs` | 52 | 协议常量 | 扩展状态码 |
+| `arps/admission.rs` | 104 | 挑战-响应握手 | 原样复用 |
+| `arps/ratelimit.rs` | 266 | 滑动窗口 rate limit | 原样复用 |
+| `arps/router.rs` | 218 | DashMap 路由表 | 加 Mailbox 写入 |
+| `arps/message_loop.rs` | 182 | 消息处理循环 | 加持久化逻辑 |
+| `arpc/hpke_seal.rs` | 321 | HPKE Auth E2E 加密 | 原样复用 |
+| `arpc/dedup.rs` | 164 | 消息去重 | 改 key 逻辑 |
+| `arpc/webhook.rs` | 233 | Webhook 推送 | 改 payload 格式 |
+| `arpc/backoff.rs` | 173 | 指数退避重连 | 原样复用 |
+| `arpc/keypair.rs` | 191 | Ed25519 密钥管理 | 原样复用 |
+
+**可原样复用：~2,950 行**（crypto + framing + admission + ratelimit + HPKE + backoff + keypair + base58）
+**需适配复用：~1,200 行**（router + message_loop + dedup + webhook）
+**需全新编写：~3,000-4,000 行**（Mailbox + Identity + Push Coordinator + Agent Card + API Gateway）
+
+#### 18.4.3 Fork 策略：复用 arp-common + 重写 relay/agent
+
+v0.3.2 的 cross-relay 架构让直接 fork arpc/arps 不再合理——`arpc/relay.rs` 从 442 行膨胀到 1064 行，内部耦合了 Coordinator/Worker/RelayPool/StatusReport 等大量多 relay 逻辑，Aurum 不需要多 relay。
+
+**策略：fork `arp-common`，参照 arps/arpc 架构新写 aurum-relay 和 aurum-agent。**
+
+```text
+aurum/crates/
+├── aurum-common/          ← fork arp-common (改动最少)
+│   ├── frame.rs           ← 扩展帧类型 (MAILBOX_STORE, AGENT_CARD 等)
+│   ├── crypto.rs          ← 原样
+│   ├── base58.rs          ← 原样
+│   ├── types.rs           ← 扩展状态码
+│   └── style.rs           ← 原样
+│
+├── aurum-relay/           ← 新写，参照 arps 架构
+│   ├── admission.rs       ← 用 aurum-common
+│   ├── router.rs          ← 加 Mailbox 写入
+│   ├── message_loop.rs    ← 加持久化
+│   ├── ratelimit.rs       ← 参照 arps/ratelimit
+│   ├── mailbox.rs         ← 新写：Supabase 写入 + 查询
+│   ├── identity.rs        ← 新写：Agent Card + Owner 背书验证
+│   ├── push_coordinator.rs← 新写：多通道推送协调
+│   ├── webhook.rs         ← 参照 arpc/webhook，改 Aurum 格式
+│   └── config.rs          ← 新写
+│
+├── aurum-agent/           ← 新写，替代 Go CLI
+│   ├── relay.rs           ← 参照 arpc/relay.rs，简化为单 relay
+│   ├── hpke_seal.rs       ← 直接用 arpc/hpke_seal.rs
+│   ├── keypair.rs         ← 参照 arpc/keypair.rs
+│   ├── local_api.rs       ← 新写
+│   └── dedup.rs           ← 参照 arpc/dedup.rs，改 key 逻辑
+│
+└── aurum-sdk/             ← 新写，供第三方集成
+    └── client.rs          ← HTTP + WebSocket 客户端
+```
+
+**为何不全 fork arpc/arps：**
+- `arpc/relay.rs` 1064 行全是 cross-relay 逻辑，Aurum 不需要多 relay
+- `arps/connection.rs` 的 HTTP redirect / Cloudflare 头提取是 ARP 特有的
+- Aurum 的核心差异（Mailbox + Identity + Push）不在 ARP 代码里
+
+**fork `arp-common` 的理由：**
+- 协议帧格式是共享基础，必须兼容
+- crypto/base58/types 零改动
+- 只需扩展帧类型和状态码
+
+#### 18.4.4 架构模式复用
+
+**1) Relay Pool → Push Coordinator**
+
+ARP 的 Coordinator + N Worker 架构，Aurum 用来做多通道推送：
+
+```text
+ARP:                         Aurum:
+  Coordinator                  Push Coordinator
+  ├─ Worker→ Relay-1           ├─ Worker→ Webhook
+  ├─ Worker→ Relay-2           ├─ Worker→ WebSocket
+  └─ Worker→ Relay-3           ├─ Worker→ SSE
+                               └─ Worker→ Email
+
+  Seal once, fan out           Persist once, push many
+  Dedup across relays          Dedup across channels
+  STATUS aggregation           Delivery status aggregation
+```
+
+Push Coordinator 核心逻辑：
+- 消息进入 → 写 Mailbox（持久化保证）→ 推送到所有已配置通道
+- 通道满 → 不阻塞，消息已在 Mailbox 中，Agent 可直接从 Mailbox 拉取
+- 至少一个通道 DELIVERED 即为成功
+- 同一条消息跨通道不去重（用户可能多端接收）
+
+**2) Admission → API 鉴权**
+
+ARP 的挑战-响应 + PoW 用在 Aurum 的 WebSocket 连接和 API 调用：
+
+```text
+ARP WebSocket admission:         Aurum WebSocket/API admission:
+  1. Challenge (32B random)        1. Challenge
+  2. Ed25519 sign(challenge+ts)    2. Ed25519 sign(challenge+ts)
+  3. PoW solve                     3. PoW solve (高峰期可选开启)
+  4. Server verifies               4. Server verifies
+                                    5. + 查 Agent Card (Aurum 独有)
+                                    6. + 查 Owner endorsement (Aurum 独有)
+                                    7. + 查撤销状态 (Aurum 独有)
+```
+
+**3) Bounded Channel + Backpressure**
+
+ARP 的 `mpsc::channel(256)` + `try_send` 模式：通道满 → 返回 STATUS RATE_LIMITED，不阻塞发送者。
+
+Aurum 的变体：通道满 → 消息已在 Mailbox 中持久化，不丢失。推送延迟但不丢。Agent 可直接从 Mailbox 拉取。
+
+**4) Dedup 模式**
+
+ARP dedup 的安全设计：
+- 检查去重 → 在 HPKE 解密之前（快速路径跳过已知重复）
+- 标记去重 → 在 HPKE 解密成功之后（防止缓存投毒）
+
+Aurum 入端消息去重基于 `external_id`（Resend email_id / API request_id），而不是 wire-level hash。
+
+### 18.5 目标数据模型
+
+```sql
+-- Agent Owner（个人、组织、企业）
+CREATE TABLE aurum_owners (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID REFERENCES auth.users(id),
+  handle      TEXT UNIQUE NOT NULL,        -- rafael
+  domain      TEXT DEFAULT 'aurum.dev',     -- 自定义域支持
+  public_key  BYTEA,                        -- Owner Ed25519 public key
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Agent 身份
+CREATE TABLE aurum_agents (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id      UUID REFERENCES aurum_owners(id) NOT NULL,
+  handle        TEXT NOT NULL,               -- neo
+  domain        TEXT DEFAULT 'aurum.dev',
+  public_key    BYTEA NOT NULL,              -- Ed25519 agent public key
+  webhook_url   TEXT,                        -- Agent runtime webhook
+  webhook_secret TEXT,                       -- HMAC secret for webhook
+  status        TEXT DEFAULT 'active'        -- active / revoked / suspended
+                CHECK (status IN ('active','revoked','suspended')),
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(handle, domain)
+);
+
+-- Owner 背书链
+CREATE TABLE aurum_endorsements (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id        UUID REFERENCES aurum_owners(id) NOT NULL,
+  agent_id        UUID REFERENCES aurum_agents(id) NOT NULL,
+  agent_public_key BYTEA NOT NULL,           -- 背书时的 agent public key
+  capabilities    JSONB DEFAULT '[]',
+  signature       BYTEA NOT NULL,             -- Owner 对 (agent + pubkey + capabilities) 签名
+  issued_at       TIMESTAMPTZ DEFAULT now(),
+  expires_at      TIMESTAMPTZ,
+  revoked_at      TIMESTAMPTZ,
+  UNIQUE(owner_id, agent_id, issued_at)
+);
+
+-- 消息 Mailbox
+-- aurum_messages 是统一消息存储层（unified inbox），不绑定任何渠道。
+-- channel 记录消息从哪个渠道进入（inbound_channel），push_log 记录推送走了哪些通道。
+-- direction 通过 from_address / to_address 可推断，但显式存储以支持分库分表场景。
+-- read_at 与 status 正交：status 追踪投递状态，read_at 追踪阅读状态。
+CREATE TABLE aurum_messages (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id      UUID REFERENCES aurum_agents(id) NOT NULL,
+  thread_id     UUID,                        -- 消息线程
+  channel       TEXT NOT NULL DEFAULT 'api'  -- 消息来源渠道: 'email' | 'api'
+                CHECK (channel IN ('email','api')),
+  direction     TEXT NOT NULL CHECK (direction IN ('inbound','outbound')),
+  status        TEXT DEFAULT 'pending'        -- 投递状态: pending / delivered / failed
+                CHECK (status IN ('pending','delivered','failed')),
+  read_at       TIMESTAMPTZ,                 -- 阅读时间，NULL = 未读
+  from_address  TEXT NOT NULL,
+  to_address    TEXT NOT NULL,
+  subject       TEXT,
+  body          TEXT NOT NULL,
+  signature     BYTEA,                       -- Ed25519 消息签名
+  external_id   TEXT,                        -- Resend email_id / API request_id（用于去重）
+  metadata      JSONB DEFAULT '{}',
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- 推送日志（出站推送通道记录，与 aurum_messages.channel 正交）
+-- channel 此处指推送通道（webhook / websocket / sse / email），一条消息可多通道推送
+CREATE TABLE aurum_push_log (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id  UUID REFERENCES aurum_messages(id) NOT NULL,
+  channel     TEXT NOT NULL,                 -- webhook / websocket / sse / email
+  status      TEXT DEFAULT 'pending',        -- pending / delivered / failed / retrying
+  attempts    INT DEFAULT 0,
+  last_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Agent Card / Discovery
+CREATE TABLE aurum_agent_cards (
+  agent_id    UUID PRIMARY KEY REFERENCES aurum_agents(id),
+  card        JSONB NOT NULL,               -- A2A-compatible agent card
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- 关键索引
+CREATE INDEX idx_messages_agent_id ON aurum_messages(agent_id, created_at DESC);
+CREATE INDEX idx_messages_thread_id ON aurum_messages(thread_id, created_at);
+CREATE INDEX idx_messages_external_id ON aurum_messages(external_id) WHERE external_id IS NOT NULL;
+CREATE INDEX idx_messages_status ON aurum_messages(agent_id, status) WHERE status = 'pending';
+CREATE INDEX idx_push_log_message ON aurum_push_log(message_id, channel);
+```
+
+### 18.6 安全架构
+
+**三层防护（参照 ARP）：**
+
+| 层 | 防护 | 实现 |
+|---|---|---|
+| **Edge** | CDN/proxy | Cloudflare: per-IP rate limiting, WAF, bot scoring |
+| **Admission** | 连接级 | Ed25519 挑战-响应 + PoW + per-IP 连接限制 + pre-auth semaphore |
+| **Runtime** | 运行时 | 滑动窗口 rate limit: 120 msgs/min, 1 MB/min, 65 KB max payload |
+
+**Aurum 增加的身份层：**
+
+- Agent admission 时验证 Owner endorsement 有效性
+- 检查 Agent status（active / revoked / suspended）
+- 消息写入时验证发送者身份
+- Webhook 推送使用 HMAC 签名验证
+
+**当前安全缺陷修复（P0 必须）：**
+
+- `SECURITY DEFINER` RPC 改为 `SECURITY INVOKER` + RLS policy
+- 去掉 `GRANT EXECUTE TO anon`，改为 authenticated role
+- `api_key_hash` 替换为 Ed25519 public key 身份
+- 加 rate limiting
+
+### 18.7 队列策略
+
+**P0 — Supabase 表 + pg_notify + FOR UPDATE SKIP LOCKED**
+
+零新基础设施，利用 PostgreSQL 作为队列：
+
+```text
+消息进入
+  → INSERT aurum_messages (status='pending')
+  → NOTIFY 'aurum_new_message'
+  → Push Worker: LISTEN + FOR UPDATE SKIP LOCKED
+  → 处理成功: UPDATE status='delivered'
+  → 处理失败: UPDATE status='failed', INSERT aurum_push_log
+```
+
+**P1 — Redis Streams**
+
+当消息量超过 PostgreSQL 队列的承受能力时：
+
+```text
+消息进入
+  → XADD aurum:messages
+  → Consumer Group: XREADGROUP
+  → 处理成功: XACK
+  → 处理失败: XPENDING + retry
+```
+
+### 18.8 寻址格式
+
+Agent 地址格式：`name@domain`
+
+- 托管域：`neo@aurum.dev`——默认，开箱即用
+- 自定义域：`neo@acme.com`——DNS/WebFinger 解析指向 Aurum
+
+解析流程：
+
+```text
+neo@acme.com
+  → DNS TXT: _aurum.acme.com → "v=aurum1; relay=wss://aurum.acme.com"
+  → 或 WebFinger: https://acme.com/.well-known/webfinger?resource=aurum:neo@acme.com
+  → 返回: { "rel": "https://aurum.dev/relay", "href": "wss://aurum.acme.com" }
+```
+
+### 18.9 实施路线
+
+**P0 — 1-2 周（Trusted Agent Messaging 基础）**
+
+1. Fork `arp-common` → `aurum-common`，扩展帧类型和状态码
+2. 新建 `aurum-relay` crate：
+   - Admission（用 aurum-common）
+   - Router（加 Mailbox 写入）
+   - Message Loop（加持久化）
+   - Rate Limiting（参照 arps）
+   - Mailbox module（Supabase 写入 + 查询）
+   - Push Coordinator（参照 ARP Coordinator 模式，多通道推送）
+3. 替换 `api_key_hash` 为 Ed25519 public key 身份
+4. 新增 `aurum_agents.public_key` + `webhook_url` + `webhook_secret`
+5. 增强 `aurum_messages`：thread_id, direction, status, external_id, signature
+6. 新增 `aurum_inbound_events` 缓冲表（异步 inbound 处理）
+7. 新增关键索引
+8. WebSocket gateway + ARP 风格 admission
+9. pg_notify 消息推送
+
+**P1 — 2-4 周（Encryption + Identity + Push）**
+
+1. HPKE Auth (RFC 9180) E2E 加密
+2. Agent Card endpoint
+3. Owner endorsement chain
+4. 消息签名 + 验证 API
+5. Webhook push worker with retry / dead-letter
+6. 身份撤销
+
+**P2 — 4-8 周（Discovery + Protocol Bridge）**
+
+1. Redis Streams 队列
+2. SSE for dashboard
+3. A2A protocol bridging
+4. Discovery / search
+5. 组织 / governance 基础
+
+### 18.10 当前 P0 完成度
+
+| 模块 | 状态 | 说明 |
+|---|---|---|
+| Transport — Email | ✅ 已实现 | Resend webhook inbound |
+| Transport — WebSocket | ❌ 缺失 | 需要实现 |
+| Transport — HTTP API | ⚠️ 部分 | 有 basic route，缺认证和完整端点 |
+| Messaging — Mailbox | ⚠️ 部分 | 有 messages 表，缺 channel/direction/read_at/to_address/push/thread |
+| Messaging — Push | ❌ 缺失 | 无 webhook/websocket 推送 |
+| Messaging — Channel: email | ✅ inbound 已实现 | Resend webhook → aurum_messages，缺 channel 字段 |
+| Messaging — Channel: api | ⚠️ 部分 | /agents/send 只发邮件，缺内部直投 + inbound endpoint |
+| Messaging — Smart Routing | ❌ 缺失 | /agents/send 需识别 @air7.fun 内部路由 vs Resend |
+| Messaging — Read Status | ❌ 缺失 | 缺 read_at 字段和 mark-as-read 端点 |
+| Trust — Identity | ⚠️ 部分 | 有 api_key_hash，缺 Ed25519 身份 |
+| Trust — Endorsement | ❌ 缺失 | 无 owner endorsement |
+| Trust — Signing | ❌ 缺失 | 无消息签名 |
+| Trust — Verification | ❌ 缺失 | 无验证 API |
+| Trust — Revocation | ❌ 缺失 | 无撤销 |
+| Discovery — Agent Card | ❌ 缺失 | 无 discovery endpoint |
+| Security — Rate Limit | ❌ 缺失 | 无 rate limiting |
+| Security — RPC Hardening | ❌ 缺失 | SECURITY DEFINER + anon 暴露 |
+
+**总体 P0 完成度：~35-40%**
+
+---
+
+## 19. 参考资料
 
 - 内部对话：Agent Identity 设计讨论，2026-04-27
 - Uber Engineering · Claude Skills 增长时间线 · 2025
@@ -1081,5 +1549,7 @@ A2A / ACP / MCP / Email / Webhook
 - A2A Protocol（Google Agent-to-Agent，2025）
 - Agent Communication Protocol（ACP）
 - Model Context Protocol（MCP）
+- ARP — Agent Relay Protocol v0.3.2（MIT, Rust, ~9,700 行）：`~/R129/arp/`
+- HPKE Auth Mode (RFC 9180)：X25519-HKDF-SHA256 + ChaCha20Poly1305
 - 内部幻灯片：`~/R129/Vault/agent-harness-v0.4.0.html`, `harness-showcase-v0.5.html`
 - Day-1 skill reference implementation：`~/R129/judge-the-code/`

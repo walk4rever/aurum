@@ -1,6 +1,14 @@
 {
   "packages": [
     {
+      "name": "aurum-messaging",
+      "version": "0.1.0",
+      "description": "Skill for AI agents to read and send messages via the Aurum inbox API",
+      "author": "walk4rever",
+      "source": "https://github.com/walk4rever/aurum",
+      "tags": ["messaging", "inbox", "agent", "api"]
+    },
+    {
       "name": "judge-the-code",
       "version": "0.2.0",
       "description": "Maintain judgment and taste over AI-generated code — security, design, token cost",
