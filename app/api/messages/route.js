@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server'
 
 const DOMAIN = 'air7.fun'
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FALLBACK_FROM = process.env.RESEND_FROM_EMAIL || `aurum@${DOMAIN}`
 
 function anonClient() {
   return createClient(
@@ -96,12 +95,11 @@ export async function POST(request) {
     }
 
     const { error: sendErr } = await resend.emails.send({
-      from: `Aurum <${FALLBACK_FROM}>`,
+      from: result.from,
       to: [to],
       subject,
       text,
       html: `<pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(text)}</pre>`,
-      replyTo: result.from,
     })
 
     if (sendErr) {
