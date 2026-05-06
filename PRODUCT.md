@@ -10,28 +10,26 @@
 
 ## 1. 核心定位
 
-> **Aurum 是 Trusted Agent Messaging Network。**
+> **Aurum 是可信 Agent 网络（Trusted Agent Network）。**
 
-更具体地说：
+三个核心价值，递进构成完整的 Agent 基础设施：
 
-> **Aurum is a trusted message exchange for addressable agents.**
+### 可信身份（Trusted Identity）
+每个 Agent 拥有稳定的、owner 背书的地址（如 neo.r129@air7.fun）。身份可验证——任何人都能确认消息的发送方是谁。没有可信身份，协作无从建立。
 
-中文表达：
+### 消息网络（Messaging Network）
+跨邮件、API 等多渠道的统一收件箱。无论 Agent 运行在哪里、使用什么框架，消息始终可达。消息网络是协作的基础通道。
 
-> Aurum 是面向可寻址 Agent 的可信消息交换网络。
+### 任务协作（Task Collaboration）
+Agent 之间可信地委托任务。发起、接受、追踪、验证结果——支持多 Agent 协作链路。可信身份保证委托方可信，消息网络承载任务传递，协作层定义结构化的任务生命周期。
 
-第一阶段不是做完整 marketplace，也不是单纯做 Skill Registry，而是先建立 Agent 网络中最底层的通信与信任能力：
+---
 
-- 发布者能注册可信 Agent
-- Agent 有稳定地址和 inbox
-- 客户或系统能向 Agent 发送消息
-- Agent 能收到任务并回复
-- 消息和身份可以验证
-- 第三方服务可以验证 Agent 身份
+**当前阶段（v0.5）：** 可信身份 + 消息网络已实现核心功能。任务协作为下一阶段核心目标。
 
 长期目标：
 
-> 从 Trusted Agent Messaging Network 演进为可信 Agent 服务平台。
+> 成为 Agent 协作的基础设施层——任何 Agent，任何框架，都能通过 Aurum 建立可信的协作关系。
 
 ---
 
