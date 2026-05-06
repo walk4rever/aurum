@@ -44,6 +44,19 @@ export default async function DashboardPage() {
   const activeAgents = (agents ?? []).filter((a) => a.status === "active");
   const canCreate = activeAgents.length < 3;
 
+  const unreadMap = {};
+  if (activeAgents.length > 0) {
+    const { data: unread } = await supabase
+      .from("aurum_messages")
+      .select("agent_id")
+      .eq("direction", "inbound")
+      .is("read_at", null)
+      .in("agent_id", activeAgents.map((a) => a.id));
+    for (const m of (unread ?? [])) {
+      unreadMap[m.agent_id] = (unreadMap[m.agent_id] || 0) + 1;
+    }
+  }
+
   const displayName = profile?.username
     ? `@${profile.username}`
     : (profile?.display_name || user.email);
@@ -131,8 +144,9 @@ export default async function DashboardPage() {
                 const address = profile?.username
                   ? `${agent.handle}.${profile.username}@air7.fun`
                   : `${agent.handle}@air7.fun`;
+                const unread = unreadMap[agent.id] || 0;
                 return (
-                  <div key={agent.id} className="agent-card">
+                  <Link key={agent.id} href={`/dashboard/agents/${agent.handle}`} className="agent-card agent-card-link">
                     <div className="agent-card-top">
                       <span className="agent-card-name">{agent.handle}</span>
                       <span className="agent-card-status">
@@ -141,13 +155,18 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                     <div className="agent-card-address">{address}</div>
-                    <div className="agent-card-meta">
-                      {new Date(agent.created_at).toLocaleDateString(
-                        lang === "zh" ? "zh-CN" : "en-US",
-                        { year: "numeric", month: "long", day: "numeric" }
+                    <div className="agent-card-footer">
+                      <span className="agent-card-meta">
+                        {new Date(agent.created_at).toLocaleDateString(
+                          lang === "zh" ? "zh-CN" : "en-US",
+                          { year: "numeric", month: "long", day: "numeric" }
+                        )}
+                      </span>
+                      {unread > 0 && (
+                        <span className="agent-unread-badge">{unread}</span>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
