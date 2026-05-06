@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/hooks/use-lang";
 
@@ -9,16 +9,6 @@ function UserIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
-    </svg>
-  );
-}
-
-function GlobeIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="2" y1="12" x2="22" y2="12"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
     </svg>
   );
 }
@@ -32,16 +22,8 @@ function CheckIcon() {
 }
 
 export default function SettingsForm({ profile, setupUsername }) {
-  const { t, setLang } = useLang("settings");
+  const { t } = useLang("settings");
   const [username, setUsername] = useState(profile?.username ?? "");
-  const [selectedLang, setSelectedLang] = useState(profile?.lang ?? "en");
-
-  // Sync DB lang to localStorage on first load (e.g. new device, cleared storage)
-  useEffect(() => {
-    const dbLang = profile?.lang ?? "en";
-    const stored = localStorage.getItem("aurum.lang");
-    if (!stored) setLang(dbLang);
-  }, [profile?.lang, setLang]);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -54,7 +36,6 @@ export default function SettingsForm({ profile, setupUsername }) {
 
     const updates = {};
     if (username !== (profile?.username ?? "")) updates.username = username;
-    if (selectedLang !== (profile?.lang ?? "en")) updates.lang = selectedLang;
 
     if (Object.keys(updates).length === 0) {
       setStatus("idle");
@@ -71,13 +52,6 @@ export default function SettingsForm({ profile, setupUsername }) {
 
     if (!json.success) {
       setError(json.error);
-      setStatus("idle");
-      return;
-    }
-
-    if ("lang" in updates) {
-      setLang(selectedLang);
-      setSaved(true);
       setStatus("idle");
       return;
     }
@@ -99,9 +73,6 @@ export default function SettingsForm({ profile, setupUsername }) {
         <nav className="settings-nav">
           <a href="#profile" className="settings-nav-item settings-nav-active">
             <UserIcon /> {t.usernameLabel}
-          </a>
-          <a href="#language" className="settings-nav-item">
-            <GlobeIcon /> {t.langLabel}
           </a>
         </nav>
       </div>
@@ -138,35 +109,6 @@ export default function SettingsForm({ profile, setupUsername }) {
                   maxLength={30}
                   autoFocus={setupUsername}
                 />
-              </div>
-            </div>
-          </section>
-
-          <div className="settings-divider" />
-
-          <section className="settings-section" id="language">
-            <div className="settings-section-header">
-              <div className="settings-section-icon"><GlobeIcon /></div>
-              <div>
-                <h2 className="settings-section-title">{t.langLabel}</h2>
-              </div>
-            </div>
-            <div className="settings-field">
-              <div className="settings-lang-options">
-                {[
-                  { value: "en", label: "English" },
-                  { value: "zh", label: "中文" },
-                ].map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`settings-lang-btn${selectedLang === value ? " settings-lang-selected" : ""}`}
-                    onClick={() => setSelectedLang(value)}
-                  >
-                    {selectedLang === value && <CheckIcon />}
-                    {label}
-                  </button>
-                ))}
               </div>
             </div>
           </section>

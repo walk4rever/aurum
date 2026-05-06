@@ -9,7 +9,7 @@ export default async function SettingsPage({ searchParams }) {
 
   const { data: profile } = await supabase
     .from('aurum_profiles')
-    .select('username, lang, display_name')
+    .select('username, display_name')
     .eq('id', user.id)
     .single()
 

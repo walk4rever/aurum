@@ -23,13 +23,6 @@ export async function PATCH(request) {
     updates.username = username
   }
 
-  if ('lang' in body) {
-    if (!['en', 'zh'].includes(body.lang)) {
-      return NextResponse.json({ success: false, error: 'Invalid language.' }, { status: 422 })
-    }
-    updates.lang = body.lang
-  }
-
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ success: false, error: 'Nothing to update.' }, { status: 400 })
   }
@@ -43,11 +36,7 @@ export async function PATCH(request) {
     return NextResponse.json({ success: false, error: msg }, { status: error.code === '23505' ? 422 : 500 })
   }
 
-  const response = NextResponse.json({ success: true })
-  if ('lang' in updates) {
-    response.cookies.set('aurum.lang', updates.lang, { path: '/', maxAge: 31536000 })
-  }
-  return response
+  return NextResponse.json({ success: true })
 }
 
 export async function POST(request) {

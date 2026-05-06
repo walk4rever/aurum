@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useLang } from "@/lib/hooks/use-lang";
 import { createClient } from "@/lib/supabase/client";
+import LangToggle from "@/components/LangToggle";
 
 export default function HomePage() {
   const { lang, t } = useLang("home");
@@ -42,6 +43,7 @@ export default function HomePage() {
           <span>Aurum</span>
         </a>
         <div className="header-actions">
+          <LangToggle className="lang-toggle" />
           {loggedIn ? (
             <a className="button primary small" href="/dashboard">
               {lang === "zh" ? "控制台" : "Dashboard"}
