@@ -32,9 +32,16 @@ function CheckIcon() {
 }
 
 export default function SettingsForm({ profile, setupUsername }) {
-  const { t } = useLang("settings");
+  const { t, setLang } = useLang("settings");
   const [username, setUsername] = useState(profile?.username ?? "");
   const [selectedLang, setSelectedLang] = useState(profile?.lang ?? "en");
+
+  // Sync DB lang to localStorage on first load (e.g. new device, cleared storage)
+  useEffect(() => {
+    const dbLang = profile?.lang ?? "en";
+    const stored = localStorage.getItem("aurum.lang");
+    if (!stored) setLang(dbLang);
+  }, []);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -69,7 +76,7 @@ export default function SettingsForm({ profile, setupUsername }) {
     }
 
     if ("lang" in updates) {
-      window.location.reload();
+      setLang(selectedLang);
       return;
     }
 
