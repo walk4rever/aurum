@@ -41,7 +41,7 @@ export default function SettingsForm({ profile, setupUsername }) {
     const dbLang = profile?.lang ?? "en";
     const stored = localStorage.getItem("aurum.lang");
     if (!stored) setLang(dbLang);
-  }, []);
+  }, [profile?.lang, setLang]);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -77,6 +77,8 @@ export default function SettingsForm({ profile, setupUsername }) {
 
     if ("lang" in updates) {
       setLang(selectedLang);
+      setSaved(true);
+      setStatus("idle");
       return;
     }
 
