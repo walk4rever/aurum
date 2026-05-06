@@ -64,6 +64,8 @@ export async function POST(request) {
 
     const body = await request.json()
     const to = String(body.to ?? '').trim()
+    const toLower = to.toLowerCase()
+    const isAurumAddress = toLower.endsWith(`@${DOMAIN}`)
     const subject = String(body.subject ?? '').trim()
     const text = String(body.text ?? '').trim()
 
@@ -77,7 +79,7 @@ export async function POST(request) {
     const supabase = anonClient()
     const { data: result, error: rpcErr } = await supabase.rpc('send_message', {
       p_api_key_hash: hashApiKey(apiKey),
-      p_to: to,
+      p_to: toLower,
       p_subject: subject,
       p_body_text: text,
       p_channel: 'api',
@@ -94,9 +96,19 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, from: result.from, channel: 'api' })
     }
 
+    if (isAurumAddress) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'internal routing failed for @air7.fun address; recipient not found or send_message routing is outdated',
+        },
+        { status: 422 }
+      )
+    }
+
     const { error: sendErr } = await resend.emails.send({
       from: result.from,
-      to: [to],
+      to: [toLower],
       subject,
       text,
       html: `<pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(text)}</pre>`,
