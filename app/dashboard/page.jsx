@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getLang } from "@/lib/i18n/server";
 import { copy } from "@/lib/i18n";
 import { signOut } from "./actions";
-import LangToggle from "@/components/LangToggle";
 
 function AgentsIcon() {
   return (
@@ -90,7 +89,6 @@ export default async function DashboardPage() {
           </nav>
 
           <div className="dash-sidebar-footer">
-            <LangToggle className="dash-footer-link" />
             <Link href="/dashboard/settings" className="dash-footer-link">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
                 <circle cx="12" cy="12" r="3"/>
