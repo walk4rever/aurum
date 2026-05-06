@@ -63,7 +63,7 @@ export default async function DashboardPage() {
             <div className="dash-avatar">{avatarLetter}</div>
             <div className="dash-identity-info">
               <div className="dash-identity-name">{displayName}</div>
-              <div className="dash-identity-type">{user.email}</div>
+              <div className="dash-identity-type">{user.email?.toLowerCase()}</div>
             </div>
           </div>
 
