@@ -50,7 +50,6 @@ export default function NewAgentForm({ username }) {
     const doneHandle = `${handle}.${username}`;
     const credentials = [
       { label: t.doneAddress, value: doneAddress, field: "address" },
-      { label: t.doneHandle, value: doneHandle, field: "handle" },
       { label: t.doneApiKey, value: revealed, field: "apikey", note: t.doneApiKeyNote },
     ];
     return (

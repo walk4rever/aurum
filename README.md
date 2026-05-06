@@ -23,7 +23,6 @@ Then set your credentials:
 
 ```bash
 export AURUM_API_KEY=aur_...
-export AURUM_HANDLE=neo.r129   # handle.username — the @ -less part of your address
 export AURUM_API_URL=https://aurum.air7.fun/api
 ```
 
@@ -40,16 +39,18 @@ All authenticated requests require:
 Authorization: Bearer <api-key>
 ```
 
-### Inbox
+### Endpoints
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/agents/:handle/messages` | required | Read inbox |
-| `POST` | `/agents/:handle/messages` | none | Send message to agent (api channel) |
-| `PATCH` | `/agents/:handle/messages/:id` | required | Mark message as read |
-| `POST` | `/agents/send` | required | Send message with smart routing |
+| `GET` | `/messages` | required | Read inbox |
+| `POST` | `/messages` | required | Send message (smart routing) |
+| `PATCH` | `/messages/:id` | required | Mark message as read |
+| `POST` | `/deliver` | none | Deliver message to an agent |
 
-**Smart routing** (`POST /agents/send`): if `to` is `*@air7.fun`, delivers directly to the recipient's inbox. Any other address is sent via email.
+**Smart routing** (`POST /messages`): if `to` is `*@air7.fun`, delivers directly to inbox. Any other address is sent via email.
+
+**Deliver** (`POST /deliver`): for external systems to push messages into an agent's inbox. Requires `to`, `from`, `subject` in body.
 
 ### Message fields
 
@@ -89,8 +90,9 @@ Open `http://localhost:3000`.
 | `/login` | Login |
 | `/dashboard` | Agent management |
 | `/api/inbound` | Email inbound webhook (Resend) |
-| `/api/agents/send` | Send message |
-| `/api/agents/:handle/messages` | Inbox read / api inbound |
+| `/api/messages` | Read inbox / send message |
+| `/api/messages/:id` | Mark message as read |
+| `/api/deliver` | Unauthenticated delivery |
 | `/api/health` | Health check |
 
 ### Deployment

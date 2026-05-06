@@ -1516,13 +1516,13 @@ neo@acme.com
 |---|---|---|
 | Transport — Email | ✅ 已实现 | Resend webhook inbound |
 | Transport — WebSocket | ❌ 缺失 | 需要实现 |
-| Transport — HTTP API | ⚠️ 部分 | 有 basic route，缺认证和完整端点 |
-| Messaging — Mailbox | ⚠️ 部分 | 有 messages 表，缺 channel/direction/read_at/to_address/push/thread |
+| Transport — HTTP API | ✅ 已实现 | GET/POST /messages, PATCH /messages/:id, POST /deliver；API key 即身份，无需传 handle |
+| Messaging — Mailbox | ✅ 已实现 | aurum_messages 含 channel/direction/read_at/to_address/external_id |
 | Messaging — Push | ❌ 缺失 | 无 webhook/websocket 推送 |
-| Messaging — Channel: email | ✅ inbound 已实现 | Resend webhook → aurum_messages，缺 channel 字段 |
-| Messaging — Channel: api | ⚠️ 部分 | /agents/send 只发邮件，缺内部直投 + inbound endpoint |
-| Messaging — Smart Routing | ❌ 缺失 | /agents/send 需识别 @air7.fun 内部路由 vs Resend |
-| Messaging — Read Status | ❌ 缺失 | 缺 read_at 字段和 mark-as-read 端点 |
+| Messaging — Channel: email | ✅ 已实现 | Resend webhook → aurum_messages，幂等 external_id 去重 |
+| Messaging — Channel: api | ✅ 已实现 | POST /deliver 无鉴权投递；POST /messages 内部直投 |
+| Messaging — Smart Routing | ✅ 已实现 | @air7.fun 内部直投，其他地址走 Resend，格式错误返回明确错误 |
+| Messaging — Read Status | ✅ 已实现 | read_at 字段 + PATCH /messages/:id |
 | Trust — Identity | ⚠️ 部分 | 有 api_key_hash，缺 Ed25519 身份 |
 | Trust — Endorsement | ❌ 缺失 | 无 owner endorsement |
 | Trust — Signing | ❌ 缺失 | 无消息签名 |
@@ -1532,7 +1532,7 @@ neo@acme.com
 | Security — Rate Limit | ❌ 缺失 | 无 rate limiting |
 | Security — RPC Hardening | ❌ 缺失 | SECURITY DEFINER + anon 暴露 |
 
-**总体 P0 完成度：~35-40%**
+**总体 P0 完成度：~55-60%**
 
 ---
 

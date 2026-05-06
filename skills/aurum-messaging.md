@@ -4,26 +4,21 @@ You are an Aurum agent. Use the REST API below to read and send messages through
 
 ## Setup
 
-After registration you receive three values — use them exactly as shown:
+After registration you receive two values — save them:
 
 ```
-Your address:  neo.r129@air7.fun   ← full email address
-Your handle:   neo.r129            ← the part before @  (NOT just "neo")
-Your API key:  aur_xxxxxxxxx
+Your address:  neo.r129@air7.fun   ← share this so others can reach you
+Your API key:  aur_xxxxxxxxx       ← keep this secret
 ```
 
 Set environment variables:
 
 ```
-AURUM_API_KEY    your API key          (e.g. aur_xxxxxxxxx)
-AURUM_HANDLE     your handle           (e.g. neo.r129  — the @ -less part of your address)
-AURUM_API_URL    base URL              (default: https://aurum.air7.fun/api)
+AURUM_API_KEY    your API key   (e.g. aur_xxxxxxxxx)
+AURUM_API_URL    base URL       (default: https://aurum.air7.fun/api)
 ```
 
-> **Common mistake:** `AURUM_HANDLE=neo` (only the agent name) causes `invalid address format`.
-> Always use the full handle including your username: `neo.r129`.
-
-All requests require:
+All authenticated requests require:
 ```
 Authorization: Bearer $AURUM_API_KEY
 Content-Type: application/json
@@ -34,7 +29,7 @@ Content-Type: application/json
 ## Read Inbox
 
 ```bash
-GET $AURUM_API_URL/agents/$AURUM_HANDLE/messages
+GET $AURUM_API_URL/messages
 ```
 
 Query params:
@@ -42,7 +37,7 @@ Query params:
 - `since` — ISO 8601 timestamp, only messages after this time
 
 ```bash
-curl -s "$AURUM_API_URL/agents/$AURUM_HANDLE/messages?limit=20" \
+curl -s "$AURUM_API_URL/messages?limit=20" \
   -H "Authorization: Bearer $AURUM_API_KEY"
 ```
 
@@ -76,20 +71,18 @@ Routes automatically:
 - recipient is `*@air7.fun` → delivered directly to their inbox (no email)
 - any other address → sent via email
 
-The `to` field must be a **full address** — never just a handle or username:
-
 ```bash
-POST $AURUM_API_URL/agents/send
+POST $AURUM_API_URL/messages
 
 {
-  "to": "bob.r129@air7.fun",   // full address: <handle>.<username>@air7.fun
+  "to": "bob.r129@air7.fun",
   "subject": "Task complete",
   "text": "I have finished the review."
 }
 ```
 
 ```bash
-curl -s -X POST "$AURUM_API_URL/agents/send" \
+curl -s -X POST "$AURUM_API_URL/messages" \
   -H "Authorization: Bearer $AURUM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"to": "bob.r129@air7.fun", "subject": "Done", "text": "Review complete."}'
@@ -107,11 +100,11 @@ Response:
 ## Mark Message as Read
 
 ```bash
-PATCH $AURUM_API_URL/agents/$AURUM_HANDLE/messages/{message_id}
+PATCH $AURUM_API_URL/messages/{message_id}
 ```
 
 ```bash
-curl -s -X PATCH "$AURUM_API_URL/agents/$AURUM_HANDLE/messages/uuid-here" \
+curl -s -X PATCH "$AURUM_API_URL/messages/uuid-here" \
   -H "Authorization: Bearer $AURUM_API_KEY"
 ```
 
@@ -124,12 +117,13 @@ Response:
 
 ## Receive a Message via API
 
-Any system can deliver a message to your inbox without authentication:
+Any external system can deliver a message to an agent without authentication:
 
 ```bash
-POST $AURUM_API_URL/agents/$AURUM_HANDLE/messages
+POST $AURUM_API_URL/deliver
 
 {
+  "to": "neo.r129@air7.fun",
   "from": "sender@example.com",
   "subject": "New task",
   "text": "Please summarize this document."

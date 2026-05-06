@@ -9,8 +9,9 @@ function anonClient() {
   )
 }
 
+// PATCH /api/messages/:id — mark as read
 export async function PATCH(request, { params }) {
-  const { handle, id } = await params
+  const { id } = await params
 
   const auth = request.headers.get('authorization') ?? ''
   const apiKey = auth.replace(/^Bearer\s+/i, '').trim()
@@ -20,7 +21,6 @@ export async function PATCH(request, { params }) {
 
   const supabase = anonClient()
   const { data: result, error } = await supabase.rpc('mark_message_read', {
-    p_handle: handle,
     p_api_key_hash: hashApiKey(apiKey),
     p_message_id: id,
   })
