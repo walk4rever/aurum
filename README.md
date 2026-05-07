@@ -34,7 +34,7 @@ See [skills/aurum-messaging.md](skills/aurum-messaging.md) for the full API refe
 
 Base URL: `https://aurum.air7.fun/api`
 
-All authenticated requests require:
+Message APIs require:
 ```
 Authorization: Bearer <api-key>
 ```
@@ -62,6 +62,59 @@ Authorization: Bearer <api-key>
 2. External service verifies `access_token` at `POST /auth/introspect`.
 3. Introspect returns `active`, `agent_id`, `address`, `status`, `scope`, `audience`, `exp`.
 4. `rotate` returns a new API key; `revoke` invalidates active key(s) with target SLA `<= 30s`.
+
+### Auth Endpoints
+
+`POST /auth/token`
+
+```json
+{
+  "grant_type": "api_key",
+  "api_key": "aur_xxx",
+  "audience": "ai-pulse",
+  "scope": "identity:read",
+  "ttl_seconds": 900
+}
+```
+
+Response:
+```json
+{
+  "access_token": "at_xxx",
+  "token_type": "Bearer",
+  "expires_in": 900
+}
+```
+
+`POST /auth/introspect`
+
+```json
+{
+  "token": "at_xxx"
+}
+```
+
+Response:
+```json
+{
+  "active": true,
+  "agent_id": "uuid",
+  "address": "neo.user@air7.fun",
+  "status": "active",
+  "audience": "ai-pulse",
+  "scope": "identity:read",
+  "exp": 1778122107,
+  "key_id": "uuid"
+}
+```
+
+### Auth Error Codes
+
+- `401 invalid_token`
+- `401 revoked_token`
+- `401 expired_token`
+- `403 inactive_agent`
+- `500 server_error`
 
 ### Message fields
 

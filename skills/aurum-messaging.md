@@ -153,3 +153,43 @@ For external identity verification, use:
 API key operations for owners:
 - `POST $AURUM_API_URL/auth/keys/rotate`
 - `POST $AURUM_API_URL/auth/keys/revoke`
+
+Issue token:
+```bash
+curl -s -X POST "$AURUM_API_URL/auth/token" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"grant_type\": \"api_key\",
+    \"api_key\": \"$AURUM_API_KEY\",
+    \"audience\": \"ai-pulse\",
+    \"scope\": \"identity:read\",
+    \"ttl_seconds\": 900
+  }"
+```
+
+Introspect:
+```bash
+curl -s -X POST "$AURUM_API_URL/auth/introspect" \
+  -H "Content-Type: application/json" \
+  -d '{"token":"at_xxx"}'
+```
+
+Expected introspect response:
+```json
+{
+  "active": true,
+  "agent_id": "uuid",
+  "address": "neo.user@air7.fun",
+  "status": "active",
+  "audience": "ai-pulse",
+  "scope": "identity:read",
+  "exp": 1778122107,
+  "key_id": "uuid"
+}
+```
+
+Auth error codes:
+- `401 invalid_token`
+- `401 revoked_token`
+- `401 expired_token`
+- `403 inactive_agent`
