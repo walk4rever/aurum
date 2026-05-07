@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { createClient } from '@supabase/supabase-js'
 import { verifyAccessToken } from '@/lib/auth/tokens'
+
+function anonClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+}
 
 export async function POST(request) {
   let body
@@ -22,45 +29,29 @@ export async function POST(request) {
   }
 
   const { payload } = verified
-  const supabase = createServiceClient()
+  const supabase = anonClient()
+  const { data: check, error: rpcError } = await supabase.rpc('auth_verify_agent_key', {
+    p_key_id: payload.key_id,
+    p_agent_id: payload.sub,
+  })
 
-  const { data: keyRow, error: keyError } = await supabase
-    .from('aurum_agent_keys')
-    .select('id, agent_id, status')
-    .eq('id', payload.key_id)
-    .maybeSingle()
-
-  if (keyError) {
+  if (rpcError) {
     return NextResponse.json({ active: false, error: 'server_error' }, { status: 500 })
   }
 
-  if (!keyRow || keyRow.status !== 'active' || keyRow.agent_id !== payload.sub) {
-    return NextResponse.json({ active: false, error: 'revoked_token' }, { status: 401 })
-  }
-
-  const { data: agentRow, error: agentError } = await supabase
-    .from('aurum_agents')
-    .select('id, status')
-    .eq('id', payload.sub)
-    .maybeSingle()
-
-  if (agentError) {
-    return NextResponse.json({ active: false, error: 'server_error' }, { status: 500 })
-  }
-
-  if (!agentRow || agentRow.status !== 'active') {
-    return NextResponse.json({ active: false, error: 'inactive_agent' }, { status: 403 })
+  if (!check?.ok) {
+    const status = check?.error === 'inactive_agent' ? 403 : 401
+    return NextResponse.json({ active: false, error: check?.error ?? 'revoked_token' }, { status })
   }
 
   return NextResponse.json({
     active: true,
     agent_id: payload.sub,
     address: payload.address,
-    status: agentRow.status,
+    status: check.status,
     audience: payload.aud,
     scope: payload.scope,
     exp: payload.exp,
     key_id: payload.key_id,
   })
 }
-
