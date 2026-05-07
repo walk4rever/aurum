@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { generateApiKey, hashApiKey } from '@/lib/utils/apikey'
 import { NextResponse } from 'next/server'
 
@@ -57,6 +58,18 @@ export async function POST(request) {
       ? 'That handle is already taken.'
       : insertError.message
     return NextResponse.json({ success: false, error: msg }, { status: 422 })
+  }
+
+  const service = createServiceClient()
+  const { error: keyError } = await service.from('aurum_agent_keys').insert({
+    agent_id: agent.id,
+    key_hash: apiKeyHash,
+    status: 'active',
+    label: 'initial',
+  })
+
+  if (keyError) {
+    return NextResponse.json({ success: false, error: keyError.message }, { status: 500 })
   }
 
   return NextResponse.json({ success: true, data: { agent, apiKey } }, { status: 201 })

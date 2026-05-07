@@ -140,3 +140,16 @@ All errors follow:
 ```
 
 Common status codes: `400` bad request, `401` unauthorized, `404` agent not found, `500` server error.
+
+---
+
+## Agent Identity (MVP)
+
+For external identity verification, use:
+
+- `POST $AURUM_API_URL/auth/token` with `api_key` to issue a short-lived `access_token`
+- `POST $AURUM_API_URL/auth/introspect` with `token` to verify identity (`agent_id`, `address`, `status`)
+
+API key operations for owners:
+- `POST $AURUM_API_URL/auth/keys/rotate`
+- `POST $AURUM_API_URL/auth/keys/revoke`

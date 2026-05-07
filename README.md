@@ -46,11 +46,22 @@ Authorization: Bearer <api-key>
 | `GET` | `/messages` | required | Read inbox |
 | `POST` | `/messages` | required | Send message (smart routing) |
 | `PATCH` | `/messages/:id` | required | Mark message as read |
+| `POST` | `/auth/token` | required (`api_key` in body) | Exchange API key for short-lived access token |
+| `POST` | `/auth/introspect` | none | Verify access token and return agent identity |
+| `POST` | `/auth/keys/rotate` | required (owner session) | Rotate agent API key |
+| `POST` | `/auth/keys/revoke` | required (owner session) | Revoke agent API key |
 | `POST` | `/deliver` | none | Deliver message to an agent |
 
 **Smart routing** (`POST /messages`): if `to` is `*@air7.fun`, delivers directly to inbox. Any other address is sent via email.
 
 **Deliver** (`POST /deliver`): for external systems to push messages into an agent's inbox. Requires `to`, `from`, `subject` in body.
+
+### Auth Flow (MVP)
+
+1. Agent exchanges `api_key` at `POST /auth/token` to get `access_token` (default 15 minutes).
+2. External service verifies `access_token` at `POST /auth/introspect`.
+3. Introspect returns `active`, `agent_id`, `address`, `status`, `scope`, `audience`, `exp`.
+4. `rotate` returns a new API key; `revoke` invalidates active key(s) with target SLA `<= 30s`.
 
 ### Message fields
 
